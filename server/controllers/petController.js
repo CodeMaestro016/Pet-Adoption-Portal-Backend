@@ -1,5 +1,6 @@
 import Pet from '../models/Pet.js';
-import asyncHandler from 'express-async-handler'; // Simplifies error handling (its optional)
+import asyncHandler from 'express-async-handler';
+import upload from '../middleware/uploadMiddleware.js';
 
 // Get all pets
 const getPets = asyncHandler(async (req, res) => {
@@ -17,32 +18,47 @@ const getPetById = asyncHandler(async (req, res) => {
   }
 });
 
-// Add new pet (Shelter only)
-const addPet = asyncHandler(async (req, res) => {
-  const { name, breed, age, type, description, image, available } = req.body;
-  const pet = await Pet.create({
-    name,
-    breed,
-    age,
-    type,
-    description,
-    image,
-    available,
-    shelterId: req.user._id,
-  });
-  res.status(201).json(pet);
-});
+// Add new pet (Shelter only) with image upload
+const addPet = [
+  upload.single('image'), // 'image' is the field name for the file input
+  asyncHandler(async (req, res) => {
+    const { name, breed, age, type, description, available } = req.body;
+    const image = req.file ? `/uploads/${req.file.filename}` : '';
 
-// Update pet (Shelter only)
-const updatePet = asyncHandler(async (req, res) => {
-  const pet = await Pet.findById(req.params.id);
-  if (pet && pet.shelterId.toString() === req.user._id.toString()) {
-    const updatedPet = await Pet.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    res.json(updatedPet);
-  } else {
-    res.status(403).json({ message: 'Not authorized to update this pet' });
-  }
-});
+    const pet = await Pet.create({
+      name,
+      breed,
+      age,
+      type,
+      description,
+      image,
+      available,
+      shelterId: req.user._id,
+    });
+    res.status(201).json(pet);
+  }),
+];
+
+// Update pet (Shelter only) with optional image upload
+const updatePet = [
+  upload.single('image'),
+  asyncHandler(async (req, res) => {
+    const pet = await Pet.findById(req.params.id);
+    if (pet && pet.shelterId.toString() === req.user._id.toString()) {
+      const { name, breed, age, type, description, available } = req.body;
+      const image = req.file ? `/uploads/${req.file.filename}` : pet.image;
+
+      const updatedPet = await Pet.findByIdAndUpdate(
+        req.params.id,
+        { name, breed, age, type, description, image, available },
+        { new: true }
+      );
+      res.json(updatedPet);
+    } else {
+      res.status(403).json({ message: 'Not authorized to update this pet' });
+    }
+  }),
+];
 
 // Delete pet (Shelter only)
 const deletePet = asyncHandler(async (req, res) => {
