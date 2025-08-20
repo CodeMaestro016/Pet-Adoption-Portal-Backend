@@ -8,6 +8,7 @@ import { fileURLToPath } from "url";
 import connectDB from "./config/db.js"; // Import the connectDB function
 import authRoutes from "./routes/authRoutes.js";
 import petRoutes from './routes/petRoutes.js'
+import adoptionRoutes from './routes/adoptionRoutes.js'
 
 // Load environment variables
 dotenv.config();
@@ -30,6 +31,7 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/pets", petRoutes);
+app.use("/api", adoptionRoutes);
 
 // Sample route
 app.get("/", (req, res) => {
